@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    ignore:
+      # PDFsharp 6.3+ AGPL-3.0 ve lisans anahtarı gerektiriyor; 6.2.x (MIT) bilinçli olarak sabitlendi.
+      - dependency-name: "PDFsharp"
+        versions: [">=6.3.0"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

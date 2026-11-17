@@ -1,0 +1,116 @@
+name: release
+
+# main'e her push'ta Directory.Build.props içindeki <Version> için v<sürüm> etiketi ve
+# GitHub Release yoksa oluşturulur. Yeni sürüm = Version'ı artırıp main'e push.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  AVALONIA_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      exists: ${{ steps.v.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -1)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VER" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+
+  build:
+    needs: version
+    if: needs.version.outputs.exists != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  rid: linux-x64,   deb: amd64 }
+          - { os: ubuntu-latest,  rid: linux-arm64, deb: arm64 }
+          - { os: windows-latest, rid: win-x64 }
+          - { os: macos-latest,   rid: osx-arm64 }
+          - { os: macos-latest,   rid: osx-x64 }
+    runs-on: ${{ matrix.os }}
+    env:
+      VER: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Yayımla / publish (tek dosya, gömülü .NET)
+        shell: bash
+        run: |
+          COMMON="-c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none"
+          dotnet publish src/TopluImza.Cli $COMMON -o pub
+          dotnet publish src/TopluImza.Gui $COMMON -o pub
+          mkdir -p dist
+      - name: Linux arşiv ve .deb
+        if: runner.os == 'Linux'
+        run: |
+          tar -C pub -czf "dist/topluimza-$VER-${{ matrix.rid }}.tar.gz" .
+          bash packaging/linux/build-deb.sh pub "$VER" "${{ matrix.deb }}" dist
+      - name: macOS arşiv ve .pkg
+        if: runner.os == 'macOS'
+        run: |
+          tar -C pub -czf "dist/topluimza-$VER-${{ matrix.rid }}.tar.gz" .
+          mkdir -p root/usr/local/bin
+          cp pub/topluimza pub/topluimza-gui root/usr/local/bin/
+          pkgbuild --root root --identifier io.github.doguomer.topluimza --version "$VER" --install-location / "dist/topluimza-$VER-${{ matrix.rid }}.pkg"
+      - name: Windows zip ve MSI
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path pub\* -DestinationPath "dist\topluimza-$env:VER-win-x64.zip"
+          dotnet tool install --global wix --version 5.0.2
+          wix build -arch x64 -d Version=$env:VER -d PublishDir=pub -d LicenseFile=LICENSE packaging\windows\TopluImza.wxs -o "dist\topluimza-$env:VER-win-x64.msi"
+          # Kurulum testi / install smoke test
+          $p = Start-Process msiexec -ArgumentList "/i `"$PWD\dist\topluimza-$env:VER-win-x64.msi`" /qn /l*v install.log" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content install.log -Tail 50; exit 1 }
+          & "C:\Program Files\TopluImza\topluimza.exe" version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $p = Start-Process msiexec -ArgumentList "/x `"$PWD\dist\topluimza-$env:VER-win-x64.msi`" /qn" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { exit 1 }
+      - name: Çalışma testi / smoke test
+        if: runner.os != 'Windows'
+        run: ./pub/topluimza version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.rid }}
+          path: dist/*
+
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    env:
+      VER: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: SHA-256 özetleri
+        run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*
+      - name: GitHub Release
+        run: |
+          gh release create "v$VER" dist/* --target "$GITHUB_SHA" --title "TopluImza v$VER" --notes-file docs/release-notes.md

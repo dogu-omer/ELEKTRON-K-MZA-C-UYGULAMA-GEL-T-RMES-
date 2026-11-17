@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: SoftHSM2 ile sanal PKCS#11 kart (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y softhsm2 opensc
+          sudo chmod -R a+rX /etc/softhsm || true
+          bash scripts/softhsm-setup.sh
+      - name: Derle ve test et / build and test
+        run: dotnet test -c Release --logger "console;verbosity=normal"
+      - name: Dış araçlarla çapraz doğrulama / cross-check with openssl, pdfsig, xmlsec1 (Linux)
+        if: runner.os == 'Linux'
+        run: bash scripts/interop-check.sh

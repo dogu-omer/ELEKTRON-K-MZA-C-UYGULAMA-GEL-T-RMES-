@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TopluImza.Core\TopluImza.Core.csproj" />
+    <ProjectReference Include="..\TopluImza.Cades\TopluImza.Cades.csproj" />
+    <ProjectReference Include="..\TopluImza.Pades\TopluImza.Pades.csproj" />
+    <ProjectReference Include="..\TopluImza.Xades\TopluImza.Xades.csproj" />
+    <ProjectReference Include="..\TopluImza.Validation\TopluImza.Validation.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TopluImza.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=TopluImza
+Name[tr]=TopluImza — Toplu E-İmza
+Comment=Klasördeki dosyaları AKİS kartla toplu imzala
+Exec=topluimza-gui
+Terminal=false
+Categories=Office;Utility;Security;

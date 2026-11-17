@@ -1,0 +1,26 @@
+<!-- WiX v5 kurulum tanımı / installer definition. Komut satırı aracı Program Files'a kurulur ve PATH'e eklenir. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="TopluImza" Manufacturer="Omer Dogu" Version="$(var.Version)"
+           UpgradeCode="6B0E3B53-4C5A-4C5E-9E0B-7D4C1B8A2F11" Scope="perMachine" Language="1055">
+    <SummaryInformation Description="Toplu elektronik imza (CAdES, PAdES, XAdES)" />
+    <MajorUpgrade DowngradeErrorMessage="Daha yeni bir TopluImza sürümü zaten kurulu." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="TopluImza">
+        <Component Id="CliExe" Guid="3F1D9A2E-5B7C-4E8A-9C1D-2A6B8E4F0C31">
+          <File Id="topluimza.exe" Source="$(var.PublishDir)\topluimza.exe" KeyPath="yes" />
+          <Environment Id="PathEntry" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="yes" />
+        </Component>
+        <Component Id="License" Guid="9C2B7E41-8A3D-4F6B-B1E5-0D7A3C9F2E58">
+          <File Id="LICENSE" Source="$(var.LicenseFile)" Name="LICENSE.txt" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="TopluImza">
+      <ComponentRef Id="CliExe" />
+      <ComponentRef Id="License" />
+    </Feature>
+  </Package>
+</Wix>

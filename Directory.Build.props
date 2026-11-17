@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Authors>Ömer Doğu</Authors>
+    <Product>TopluImza</Product>
+    <Copyright>Copyright (C) 2026 Ömer Doğu</Copyright>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/dogu-omer/ELEKTRON-K-MZA-C-UYGULAMA-GEL-T-RMES-</RepositoryUrl>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NuGetAudit>true</NuGetAudit>
+  </PropertyGroup>
+</Project>
