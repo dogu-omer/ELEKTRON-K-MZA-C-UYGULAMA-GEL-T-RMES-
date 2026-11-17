@@ -64,11 +64,18 @@ internal static class Program
             ?? throw new CryptographicException("Sertifikada RSA açık anahtarı bulunamadı.");
         EnsureKeyStrength(rsa);
 
-        var signature = File.ReadAllBytes(signaturePath);
-        if (signature.Length != rsa.KeySize / 8 || signature.Length > MaximumSignatureSize)
+        byte[] signature;
+        using (var signatureInput = File.OpenRead(signaturePath))
         {
-            Console.WriteLine("İmza geçersiz.");
-            return 1;
+            if (signatureInput.Length != (rsa.KeySize + 7) / 8
+                || signatureInput.Length > MaximumSignatureSize)
+            {
+                Console.WriteLine("İmza geçersiz.");
+                return 1;
+            }
+
+            signature = new byte[checked((int)signatureInput.Length)];
+            signatureInput.ReadExactly(signature);
         }
 
         bool isValid;
@@ -140,6 +147,11 @@ internal static class Program
         if (rsa.KeySize < MinimumRsaKeySize)
         {
             throw new CryptographicException($"RSA anahtarı en az {MinimumRsaKeySize} bit olmalıdır.");
+        }
+
+        if ((rsa.KeySize + 7) / 8 > MaximumSignatureSize)
+        {
+            throw new CryptographicException($"RSA anahtarı en fazla {MaximumSignatureSize * 8} bit olabilir.");
         }
     }
 
