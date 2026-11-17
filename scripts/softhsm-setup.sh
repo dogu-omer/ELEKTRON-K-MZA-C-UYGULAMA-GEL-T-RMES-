@@ -5,7 +5,10 @@
 set -euo pipefail
 
 WORK="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/topluimza-softhsm"
-LIB="$(find /usr/lib /usr/local/lib /opt/homebrew/lib -name 'libsofthsm2.so' -o -name 'libsofthsm2.dylib' 2>/dev/null | head -1)"
+LIB=""
+for d in /usr/lib /usr/local/lib /opt/homebrew/lib; do
+  [[ -d "$d" && -z "$LIB" ]] && LIB="$(find "$d" \( -name 'libsofthsm2.so' -o -name 'libsofthsm2.dylib' \) 2>/dev/null | head -1 || true)"
+done
 if [[ -z "$LIB" ]]; then
   echo "libsofthsm2 bulunamadı: sudo apt-get install softhsm2 opensc" >&2
   exit 1

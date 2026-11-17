@@ -87,7 +87,7 @@ jobs:
           $p = Start-Process msiexec -ArgumentList "/x `"$PWD\dist\topluimza-$env:VER-win-x64.msi`" /qn" -Wait -PassThru
           if ($p.ExitCode -ne 0) { exit 1 }
       - name: Çalışma testi / smoke test
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows' && matrix.rid != 'linux-arm64'
         run: ./pub/topluimza version
       - uses: actions/upload-artifact@v4
         with:

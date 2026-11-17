@@ -28,7 +28,8 @@ public sealed class PfxSigningToken : ISigningToken
 
     public static PfxSigningToken Load(string path, ReadOnlySpan<char> password)
     {
-        var all = X509CertificateLoader.LoadPkcs12CollectionFromFile(path, password, X509KeyStorageFlags.EphemeralKeySet);
+        var all = X509CertificateLoader.LoadPkcs12CollectionFromFile(path, password,
+            OperatingSystem.IsMacOS() ? X509KeyStorageFlags.DefaultKeySet : X509KeyStorageFlags.EphemeralKeySet);
         var signer = all.Cast<X509Certificate2>().FirstOrDefault(c => c.HasPrivateKey)
             ?? throw new SigningException($"{path}: özel anahtarlı sertifika bulunamadı.");
         return new PfxSigningToken(signer, all.Cast<X509Certificate2>().Where(c => !ReferenceEquals(c, signer)));
